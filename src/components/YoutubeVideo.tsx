@@ -12,23 +12,13 @@ export default function YouTubeVideo() {
   const intervalRef = useRef<NodeJS.Timeout>();
   const timeoutRef = useRef<NodeJS.Timeout>();
 
-  // Initialize YouTube player
   const initYouTubePlayer = () => {
     if (!playerRef.current) return;
 
     const videoId = "Qa4ugJ42CwE";
-    
-    // Different URL strategies for different browsers
-    const userAgent = navigator.userAgent.toLowerCase();
-    let youtubeUrl = "";
-    
-    if (userAgent.includes('safari') && !userAgent.includes('chrome')) {
-      // Safari needs special handling
-      youtubeUrl = `https://www.youtube.com/embed/${videoId}?enablejsapi=1&controls=1&modestbranding=1&rel=0&mute=1&playsinline=1`;
-    } else {
-      // Chrome, Firefox, etc.
-      youtubeUrl = `https://www.youtube.com/embed/${videoId}?enablejsapi=1&autoplay=1&controls=1&modestbranding=1&rel=0&mute=0&playsinline=1`;
-    }
+    // CRITICAL: Load the iframe WITHOUT autoplay or mute parameters.
+    // This allows the subsequent play() command to work with the user gesture.
+    const youtubeUrl = `https://www.youtube.com/embed/${videoId}?enablejsapi=1&controls=1&modestbranding=1&rel=0`;
 
     playerRef.current.src = youtubeUrl;
   };
@@ -68,7 +58,7 @@ export default function YouTubeVideo() {
   // Handle iframe load
   const handleIframeLoad = () => {
     setIsReady(true);
-    
+
     // Create a hidden button to trigger audio context on iOS
     if (navigator.userAgent.match(/iPhone|iPad|iPod/i)) {
       const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -123,10 +113,10 @@ export default function YouTubeVideo() {
     if (hasUserInteracted && isReady && !isPlaying) {
       // Mark the interaction
       setAttemptCount(prev => prev + 1);
-      
+
       // Try to play immediately
       attemptPlay();
-      
+
       // Set up interval to keep trying (in case iframe isn't ready yet)
       intervalRef.current = setInterval(() => {
         setAttemptCount(prev => {
@@ -162,7 +152,7 @@ export default function YouTubeVideo() {
   }, [isReady, isPlaying]);
 
   return (
-    <div 
+    <div
       className="bg-gradient-to-br from-[#976790]/20 to-[#7a5274]/20 backdrop-blur-sm rounded-2xl p-6 border border-[#976790]/30 shadow-lg"
       onClick={() => {
         setUserInteraction();
@@ -177,14 +167,14 @@ export default function YouTubeVideo() {
             Muzik Latar
           </h3>
           <p className="text-xs font-['Cormorant_Garamond'] font-light text-[#976790] tracking-wide italic">
-            {isPlaying 
-              ? "Muzik sedang dimainkan" 
-              : hasUserInteracted 
-                ? "Sedang memuatkan muzik..." 
+            {isPlaying
+              ? "Muzik sedang dimainkan"
+              : hasUserInteracted
+                ? "Sedang memuatkan muzik..."
                 : "Klik mana-mana untuk mulakan muzik"}
           </p>
         </div>
-        
+
         <div className="aspect-video w-full rounded-lg overflow-hidden bg-[#976790]/10">
           <iframe
             ref={playerRef}
@@ -197,14 +187,14 @@ export default function YouTubeVideo() {
             loading="lazy"
           />
         </div>
-        
+
         <div className="text-center pt-2">
           <p className="text-xs font-['Cormorant_Garamond'] font-light text-[#976790]/80 tracking-wide italic">
             {!isPlaying && !hasUserInteracted && "Klik mana-mana untuk mulakan muzik"}
             {!isPlaying && hasUserInteracted && "Sedang cuba memainkan muzik..."}
             {isPlaying && "Gunakan kawalan YouTube untuk henti atau mainkan semula"}
           </p>
-          
+
           {!isPlaying && (
             <button
               onClick={(e) => {
