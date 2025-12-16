@@ -17,6 +17,34 @@ import PrayerCard from "@/components/PrayerCard";
 import DoorEntrance from "@/components/DoorEntrance";
 import { useEffect, useState } from "react";
 
+// Store the user interaction state globally
+let userHasInteracted = false;
+let interactionListeners: ((hasInteracted: boolean) => void)[] = [];
+
+// Function to set user interaction
+export const setUserInteraction = () => {
+  userHasInteracted = true;
+  interactionListeners.forEach(listener => listener(true));
+};
+
+// Hook to listen for user interaction
+export const useUserInteraction = () => {
+  const [hasInteracted, setHasInteracted] = useState(userHasInteracted);
+  
+  useEffect(() => {
+    const listener = (value: boolean) => {
+      setHasInteracted(value);
+    };
+    
+    interactionListeners.push(listener);
+    return () => {
+      interactionListeners = interactionListeners.filter(l => l !== listener);
+    };
+  }, []);
+  
+  return hasInteracted;
+};
+
 export default function Home() {
   const [scrolledToBottom, setScrolledToBottom] = useState(false);
   const [showDoor, setShowDoor] = useState(true);
@@ -42,8 +70,33 @@ export default function Home() {
     }
   }, [showDoor]);
 
+  // Handle user interaction for autoplay
+  useEffect(() => {
+    const handleUserInteraction = () => {
+      setUserInteraction();
+    };
+
+    // Listen for various user interactions
+    const events = [
+      'click', 'touchstart', 'keydown', 'mousedown', 
+      'scroll', 'wheel', 'pointerdown', 'pointerup'
+    ];
+
+    events.forEach(event => {
+      document.addEventListener(event, handleUserInteraction, { once: true, passive: true });
+    });
+
+    return () => {
+      events.forEach(event => {
+        document.removeEventListener(event, handleUserInteraction);
+      });
+    };
+  }, []);
+
   const openDoor = () => {
     setIsOpening(true);
+    // Mark interaction when door opens
+    setUserInteraction();
     setTimeout(() => {
       setShowDoor(false);
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -57,7 +110,11 @@ export default function Home() {
 
   // Main Content (After door opens)
   return (
-    <div className="relative w-full max-w-md mx-auto min-h-screen bg-white overflow-y-auto scroll-smooth">
+    <div 
+      className="relative w-full max-w-md mx-auto min-h-screen bg-white overflow-y-auto scroll-smooth"
+      onClick={setUserInteraction}
+      onTouchStart={setUserInteraction}
+    >
       <style jsx global>{`
         html, body {
           overflow-y: auto;
@@ -82,6 +139,7 @@ export default function Home() {
                 height={100}
                 className="object-contain"
                 priority
+                onClick={setUserInteraction}
               />
 
               <div className="text-center">
@@ -113,6 +171,7 @@ export default function Home() {
                   width={750}
                   height={450}
                   className="object-contain"
+                  onClick={setUserInteraction}
                 />
               </div>
 
@@ -121,7 +180,8 @@ export default function Home() {
                 <div className="flex-grow h-px bg-gradient-to-r from-transparent via-[#976790]/40 to-transparent"></div>
                 <div className="mx-4">
                   <svg className="w-4 h-4 text-[#976790]/60" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12,7c-2.8,0-5,2.2-5,5s2.2,5,5,5s5-2.2,5-5S14.8,7,12,7z M12,16c-2.2,0-4-1.8-4-4s1.8-4,4-4s4,1.8,4,4S14.2,16,12,16z" />                  </svg>
+                    <path d="M12,7c-2.8,0-5,2.2-5,5s2.2,5,5,5s5-2.2,5-5S14.8,7,12,7z M12,16c-2.2,0-4-1.8-4-4s1.8-4,4-4s4,1.8,4,4S14.2,16,12,16z" />
+                  </svg>
                 </div>
                 <div className="flex-grow h-px bg-gradient-to-r from-transparent via-[#976790]/40 to-transparent"></div>
               </div>
@@ -146,12 +206,16 @@ export default function Home() {
                     width={40}
                     height={40}
                     className="object-contain"
+                    onClick={setUserInteraction}
                   />
                 </div>
               </div>
 
               {!scrolledToBottom && (
-                <div className="animate-bounce flex flex-col items-center space-y-1 pt-4">
+                <div 
+                  className="animate-bounce flex flex-col items-center space-y-1 pt-4"
+                  onClick={setUserInteraction}
+                >
                   <p className="text-[12px] font-['Cormorant_Garamond'] font-semibold text-[#976790]/60">
                     Scroll untuk teruskan
                   </p>
@@ -178,11 +242,12 @@ export default function Home() {
               height={100}
               className="w-full object-contain mx-auto"
               priority
+              onClick={setUserInteraction}
             />
 
             <InvitationCard />
 
-            <div className="mt-8">
+            <div className="mt-8" onClick={setUserInteraction}>
               <YouTubeVideo />
             </div>
 
@@ -200,7 +265,10 @@ export default function Home() {
       </div>
 
       {/* Fixed Navigation Bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 pb-6 px-6 max-w-md mx-auto">
+      <div 
+        className="fixed bottom-0 left-0 right-0 z-50 pb-6 px-6 max-w-md mx-auto"
+        onClick={setUserInteraction}
+      >
         <div className="bg-[#976790]/20 backdrop-blur-sm rounded-2xl p-4 border border-[#976790]/30 shadow-lg">
           <div className="flex items-center justify-around w-full">
             <Contact />
