@@ -125,8 +125,42 @@ export default function DoorEntrance({ onEnter, isOpening }: DoorEntranceProps) 
           {/* Heart/Love symbol in the middle */}
           {!isOpening && (
             <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10">
-              <svg className="w-8 h-8 text-[#976790]/40" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+              <svg 
+                className="w-8 h-8" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                {/* Heart shadow for depth */}
+                <path 
+                  d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" 
+                  fill="url(#heartGradient)"
+                  className="drop-shadow-lg"
+                />
+                
+                {/* Optional subtle glow around the heart */}
+                <path 
+                  d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" 
+                  fill="none"
+                  stroke="#7a5274"
+                  strokeWidth="0.5"
+                  strokeOpacity="0.3"
+                />
+                
+                <defs>
+                  <linearGradient 
+                    id="heartGradient" 
+                    x1="12" 
+                    y1="3" 
+                    x2="12" 
+                    y2="21.35" 
+                    gradientUnits="userSpaceOnUse"
+                  >
+                    <stop stopColor="#7a5274" stopOpacity="0.95"/>
+                    <stop offset="0.5" stopColor="#976790" stopOpacity="0.85"/>
+                    <stop offset="1" stopColor="#b87aae" stopOpacity="0.75"/>
+                  </linearGradient>
+                </defs>
               </svg>
             </div>
           )}

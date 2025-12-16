@@ -14,6 +14,9 @@ export default function InvitationCard() {
           <p className="text-base font-['Cormorant_Garamond'] font-semibold text-[#7a5274] tracking-wider">
             MOHD BASHARUDDIN BIN SAID
           </p>
+          <span className="text-base font-['Cormorant_Garamond'] font-semibold text-[#7a5274] tracking-wider">
+            &amp;
+          </span>
           <p className="text-base font-['Cormorant_Garamond'] font-semibold text-[#7a5274] tracking-wider">
             ZABIDAH BINTI MAT YUNUS
           </p>
@@ -50,7 +53,7 @@ export default function InvitationCard() {
               Puteri kami
             </p>
           </div>
-          
+
           <div className="flex items-center justify-center space-x-3">
             <div className="h-px w-12 bg-[#976790]/30"></div>
             <span className="text-sm font-['Cormorant_Garamond'] font-light text-[#976790]">
@@ -58,7 +61,7 @@ export default function InvitationCard() {
             </span>
             <div className="h-px w-12 bg-[#976790]/30"></div>
           </div>
-          
+
           <div className="space-y-1">
             <p className="text-base font-['Cormorant_Garamond'] font-semibold text-[#7a5274] tracking-wider">
               Mohamad Yaazidraj bin Mohamad Naraj

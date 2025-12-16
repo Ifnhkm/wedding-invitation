@@ -15,20 +15,35 @@ export const metadata: Metadata = {
     siteName: "Wedding Invitation",
     images: [
       {
-        url: "https://invitation-wedding-tawny.vercel.app/thumbnail.png",
+        url: "/thumbnail.png",
         width: 1200,
         height: 630,
         alt: "Yaazid & Amirah Wedding Invitation",
       },
     ],
     type: "website",
+    locale: "en_US",
   },
 
   twitter: {
     card: "summary_large_image",
     title: "❤️ Yaazid & Amirah Wedding Invitation",
     description: "You are warmly invited to celebrate the wedding of Yaazid & Amirah",
-    images: ["https://invitation-wedding-tawny.vercel.app/thumbnail.png"],
+    images: ["/thumbnail.png"],
+  },
+
+  // Add these for better SEO
+  metadataBase: new URL("https://invitation-wedding-tawny.vercel.app"),
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
   },
 };
 
