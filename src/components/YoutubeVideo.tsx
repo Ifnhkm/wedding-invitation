@@ -7,88 +7,152 @@ export default function YouTubeVideo() {
   const playerRef = useRef<HTMLIFrameElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isReady, setIsReady] = useState(false);
-  const [attemptCount, setAttemptCount] = useState(0);
+  const [isMuted, setIsMuted] = useState(true); // Start muted for mobile autoplay
+  const [hasAttemptedUnmute, setHasAttemptedUnmute] = useState(false);
   const hasUserInteracted = useUserInteraction();
   const intervalRef = useRef<NodeJS.Timeout>();
-  const timeoutRef = useRef<NodeJS.Timeout>();
 
   const initYouTubePlayer = () => {
     if (!playerRef.current) return;
 
     const videoId = "Qa4ugJ42CwE";
-    // CRITICAL: Load the iframe WITHOUT autoplay or mute parameters.
-    // This allows the subsequent play() command to work with the user gesture.
-    const youtubeUrl = `https://www.youtube.com/embed/${videoId}?enablejsapi=1&controls=1&modestbranding=1&rel=0`;
+    // Start with muted autoplay for mobile compatibility
+    const youtubeUrl = `https://www.youtube.com/embed/${videoId}?enablejsapi=1&controls=1&modestbranding=1&rel=0&mute=1&autoplay=1&playsinline=1&loop=1`;
 
     playerRef.current.src = youtubeUrl;
   };
 
-  // Attempt to play video using YouTube API
-  const attemptPlay = () => {
-    if (!playerRef.current || !isReady) return;
+  // Auto-unmute when user interacts
+  const autoUnmute = () => {
+    if (!playerRef.current || !isReady || hasAttemptedUnmute) return;
 
     try {
-      // First try unmute and play
+      console.log("Attempting to unmute video...");
+      
+      // First ensure video is playing
       playerRef.current.contentWindow?.postMessage(
         JSON.stringify({
           event: 'command',
-          func: 'unMute',
+          func: 'playVideo',
           args: []
         }),
         '*'
       );
-
-      // Then try to play
+      
+      // Then unmute after a short delay
       setTimeout(() => {
         playerRef.current?.contentWindow?.postMessage(
           JSON.stringify({
             event: 'command',
-            func: 'playVideo',
+            func: 'unMute',
             args: []
           }),
           '*'
         );
+        
+        // Also set volume to maximum
+        playerRef.current?.contentWindow?.postMessage(
+          JSON.stringify({
+            event: 'command',
+            func: 'setVolume',
+            args: [100]
+          }),
+          '*'
+        );
+        
+        setIsMuted(false);
         setIsPlaying(true);
-      }, 100);
+        setHasAttemptedUnmute(true);
+        console.log("Video unmuted successfully");
+      }, 300);
+      
     } catch (error) {
-      console.log("YouTube API play attempt failed:", error);
+      console.log("YouTube API unmute failed:", error);
+    }
+  };
+
+  // Simple play function
+  const playVideo = () => {
+    if (!playerRef.current || !isReady) return;
+
+    try {
+      playerRef.current.contentWindow?.postMessage(
+        JSON.stringify({
+          event: 'command',
+          func: 'playVideo',
+          args: []
+        }),
+        '*'
+      );
+      setIsPlaying(true);
+    } catch (error) {
+      console.log("YouTube play failed:", error);
     }
   };
 
   // Handle iframe load
   const handleIframeLoad = () => {
+    console.log("YouTube iframe loaded");
     setIsReady(true);
+    
+    // For iOS, we need to handle audio context
+    const handleIOSAudio = () => {
+      if (typeof window === 'undefined') return;
+      
+      // Create a dummy audio element to unlock audio on iOS
+      const audio = new Audio();
+      audio.autoplay = true;
+      audio.muted = true;
+      
+      // Play the silent audio (required for iOS)
+      const playPromise = audio.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(() => {
+          // Auto-play was prevented, but that's okay
+          console.log("Silent audio play prevented");
+        });
+      }
+    };
 
-    // Create a hidden button to trigger audio context on iOS
+    // Handle iOS specifically
     if (navigator.userAgent.match(/iPhone|iPad|iPod/i)) {
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const buffer = audioContext.createBuffer(1, 1, 22050);
-      const source = audioContext.createBufferSource();
-      source.buffer = buffer;
-      source.connect(audioContext.destination);
-      source.start();
-      audioContext.resume();
+      handleIOSAudio();
     }
   };
 
-  // Main effect to handle autoplay
+  // Main effect to initialize player
   useEffect(() => {
-    // Initialize the player
     initYouTubePlayer();
 
-    // Set up message listener for YouTube events
+    // Listen for YouTube player events
     const handleMessage = (event: MessageEvent) => {
       try {
         const data = JSON.parse(event.data);
-        if (data.event === 'onReady') {
-          setIsReady(true);
-        } else if (data.event === 'onStateChange') {
-          if (data.info === 1) {
-            setIsPlaying(true);
-            if (intervalRef.current) {
-              clearInterval(intervalRef.current);
+        
+        switch (data.event) {
+          case 'onReady':
+            setIsReady(true);
+            console.log("YouTube player ready");
+            
+            // Auto-play muted video on mobile immediately
+            if (navigator.userAgent.match(/iPhone|iPad|iPod|Android/i)) {
+              setTimeout(() => {
+                playVideo();
+              }, 500);
             }
-          }
+            break;
+            
+          case 'onStateChange':
+            console.log("YouTube state:", data.info);
+            if (data.info === 1) { // Playing
+              setIsPlaying(true);
+              if (intervalRef.current) {
+                clearInterval(intervalRef.current);
+              }
+            } else if (data.info === 2) { // Paused
+              setIsPlaying(false);
+            }
+            break;
         }
       } catch (error) {
         // Not a YouTube message
@@ -102,54 +166,41 @@ export default function YouTubeVideo() {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
       }
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
     };
   }, []);
 
-  // Effect to handle playing when user interacts
+  // Effect to auto-unmute when user interacts
   useEffect(() => {
-    if (hasUserInteracted && isReady && !isPlaying) {
-      // Mark the interaction
-      setAttemptCount(prev => prev + 1);
-
-      // Try to play immediately
-      attemptPlay();
-
-      // Set up interval to keep trying (in case iframe isn't ready yet)
+    if (hasUserInteracted && isReady && isMuted && !hasAttemptedUnmute) {
+      console.log("User interacted, attempting auto-unmute");
+      
+      // Try to unmute immediately
+      autoUnmute();
+      
+      // Keep trying for a few seconds
+      let attempts = 0;
+      const maxAttempts = 3;
+      
       intervalRef.current = setInterval(() => {
-        setAttemptCount(prev => {
-          if (prev < 10) { // Max 10 attempts
-            attemptPlay();
-            return prev + 1;
-          } else {
-            if (intervalRef.current) {
-              clearInterval(intervalRef.current);
-            }
-            return prev;
-          }
-        });
+        if (!isMuted || attempts >= maxAttempts) {
+          clearInterval(intervalRef.current);
+          return;
+        }
+        
+        attempts++;
+        autoUnmute();
       }, 1000);
     }
-  }, [hasUserInteracted, isReady, isPlaying]);
+  }, [hasUserInteracted, isReady, isMuted, hasAttemptedUnmute]);
 
-  // Additional fallback: if still not playing after 5 seconds of being ready, force interaction
+  // Also try to unmute when video starts playing (as a backup)
   useEffect(() => {
-    if (isReady && !isPlaying) {
-      timeoutRef.current = setTimeout(() => {
-        if (!isPlaying) {
-          // Create a synthetic interaction
-          const clickEvent = new MouseEvent('click', {
-            view: window,
-            bubbles: true,
-            cancelable: true
-          });
-          document.dispatchEvent(clickEvent);
-        }
-      }, 5000);
+    if (isPlaying && isMuted && hasUserInteracted && !hasAttemptedUnmute) {
+      setTimeout(() => {
+        autoUnmute();
+      }, 1000);
     }
-  }, [isReady, isPlaying]);
+  }, [isPlaying, isMuted, hasUserInteracted, hasAttemptedUnmute]);
 
   return (
     <div
@@ -157,7 +208,9 @@ export default function YouTubeVideo() {
       onClick={() => {
         setUserInteraction();
         if (!isPlaying && isReady) {
-          attemptPlay();
+          playVideo();
+        } else if (isMuted && isPlaying) {
+          autoUnmute();
         }
       }}
     >
@@ -167,11 +220,13 @@ export default function YouTubeVideo() {
             Muzik Latar
           </h3>
           <p className="text-xs font-['Cormorant_Garamond'] font-light text-[#976790] tracking-wide italic">
-            {isPlaying
-              ? "Muzik sedang dimainkan"
-              : hasUserInteracted
-                ? "Sedang memuatkan muzik..."
-                : "Klik mana-mana untuk mulakan muzik"}
+            {!isReady
+              ? "Memuatkan muzik..."
+              : isPlaying
+                ? isMuted
+                  ? "Muzik dimainkan (akan aktifkan bunyi)"
+                  : "Muzik sedang dimainkan 🎵"
+                : "Ketuk untuk mainkan muzik"}
           </p>
         </div>
 
@@ -189,23 +244,19 @@ export default function YouTubeVideo() {
         </div>
 
         <div className="text-center pt-2">
-          <p className="text-xs font-['Cormorant_Garamond'] font-light text-[#976790]/80 tracking-wide italic">
-            {!isPlaying && !hasUserInteracted && "Klik mana-mana untuk mulakan muzik"}
-            {!isPlaying && hasUserInteracted && "Sedang cuba memainkan muzik..."}
-            {isPlaying && "Gunakan kawalan YouTube untuk henti atau mainkan semula"}
+          <p className="text-xs font-['Cormorant_Garamond'] font-light text-[#976790]/80 tracking-wide italic mb-2">
+            {!isPlaying && !hasUserInteracted && "Ketuk mana-mana untuk mulakan muzik"}
+            {isPlaying && isMuted && "Bunyi akan diaktifkan automatik..."}
+            {isPlaying && !isMuted && "🎵 Muzik latar perkahwinan sedang dimainkan"}
           </p>
 
-          {!isPlaying && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setUserInteraction();
-                attemptPlay();
-              }}
-              className="mt-2 px-4 py-2 bg-[#976790] text-white text-sm rounded-lg hover:bg-[#7a5274] transition-colors"
-            >
-              Mainkan Muzik
-            </button>
+          {isPlaying && isMuted && (
+            <div className="flex items-center justify-center space-x-2">
+              <div className="w-3 h-3 bg-[#976790] rounded-full animate-pulse"></div>
+              <p className="text-xs font-['Cormorant_Garamond'] font-light text-[#976790]">
+                Mengaktifkan bunyi...
+              </p>
+            </div>
           )}
         </div>
       </div>
