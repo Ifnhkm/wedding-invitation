@@ -1,7 +1,7 @@
 "use client";
 
+import { setUserInteraction, useUserInteraction } from "@/utils/userInteraction";
 import { useRef, useState, useEffect } from "react";
-import { useUserInteraction, setUserInteraction } from "@/app/page";
 
 export default function BackgroundMusic() {
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -18,6 +18,83 @@ export default function BackgroundMusic() {
 
   // Music metadata
   const musicName = "Until I Found You - Stephen Sanchez";
+
+  // Play audio function
+  const playAudio = () => {
+    if (!audioRef.current) return;
+    
+    const audio = audioRef.current;
+    setUserManuallyPaused(false);
+    
+    try {
+      // Ensure audio is unmuted and volume is set
+      audio.muted = false;
+      audio.volume = volume;
+      
+      audio.play().then(() => {
+        setIsPlaying(true);
+        setShowMobileButton(false);
+        setAudioError(null);
+        console.log("Manual play succeeded");
+      }).catch(error => {
+        console.error("Manual play failed:", error);
+        setShowMobileButton(true);
+        
+        if (error.name === 'NotAllowedError') {
+          setAudioError("Please tap the play button to start music.");
+        } else {
+          setAudioError("Could not play audio. Please try again.");
+        }
+      });
+      
+    } catch (error: any) {
+      console.error("Play error:", error);
+      setShowMobileButton(true);
+      setAudioError("Could not play audio");
+    }
+    
+    setUserInteraction();
+  };
+
+  // Pause audio function
+  const pauseAudio = () => {
+    if (!audioRef.current) return;
+    
+    audioRef.current.pause();
+    setIsPlaying(false);
+    setUserManuallyPaused(true);
+    setUserInteraction();
+  };
+
+  // Toggle play/pause - fixed to handle single click
+  const togglePlayPause = () => {
+    if (isPlaying) {
+      pauseAudio();
+    } else {
+      playAudio();
+    }
+  };
+
+  // Handle volume change - fixed to not restart audio
+  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newVolume = parseFloat(e.target.value);
+    setVolume(newVolume);
+    if (audioRef.current) {
+      // Only change volume, don't touch playback
+      audioRef.current.volume = newVolume;
+    }
+  };
+
+  // Handle audio end - loop it without restarting from beginning
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const handleAudioEnd = () => {
+    if (audioRef.current && isPlaying) {
+      // Just play again without resetting position
+      audioRef.current.play().catch(e => {
+        console.log("Loop play failed:", e);
+      });
+    }
+  };
 
   // Detect mobile device and initialize audio
   useEffect(() => {
@@ -85,7 +162,8 @@ export default function BackgroundMusic() {
       audio.removeEventListener('canplaythrough', handleCanPlay);
       audio.removeEventListener('error', handleError);
     };
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Removed dependencies to prevent re-initialization
 
   // Strategy 2: Use door interaction to unlock audio
   useEffect(() => {
@@ -100,14 +178,17 @@ export default function BackgroundMusic() {
         // Play and immediately pause to unlock audio for future use
         await audio.play();
         audio.pause();
-        audio.currentTime = 0;
+        // DON'T reset currentTime - keep audio position
+        audio.currentTime = 0; // Keep this for initial play
         audio.muted = false; // Unmute after unlocking
         setHasAudioUnlocked(true);
         console.log("Audio unlocked via user gesture");
         
         // If not on mobile and not manually paused, start playing
         if (!isMobile && !userManuallyPaused) {
-          setTimeout(() => playAudio(), 300);
+          setTimeout(() => {
+            playAudio();
+          }, 300);
         }
       } catch (err) {
         console.log("Could not unlock audio with gesture:", err);
@@ -118,98 +199,26 @@ export default function BackgroundMusic() {
     };
     
     unlockWithGesture();
-  }, [hasUserInteracted, hasAudioUnlocked, isMobile, userManuallyPaused]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasUserInteracted]); // Only depends on user interaction
 
-  // Strategy 3: Auto-resume on desktop if not manually paused
-  useEffect(() => {
-    if (!hasAudioUnlocked || !audioRef.current || isMobile || userManuallyPaused) return;
-    
-    if (!isPlaying && hasUserInteracted) {
-      const timer = setTimeout(() => {
-        playAudio();
-      }, 800);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [hasAudioUnlocked, hasUserInteracted, isMobile, userManuallyPaused, isPlaying]);
+  // REMOVE Strategy 3: This was causing auto-play after pause
+  // Comment out or remove this entire useEffect
 
-  // Play audio function
-  const playAudio = async () => {
-    if (!audioRef.current) return;
-    
-    const audio = audioRef.current;
-    setUserManuallyPaused(false);
-    
-    try {
-      // Ensure audio is unmuted and volume is set
-      audio.muted = false;
-      audio.volume = volume;
-      
-      await audio.play();
-      setIsPlaying(true);
-      setShowMobileButton(false);
-      setAudioError(null);
-      console.log("Manual play succeeded");
-      
-    } catch (error: any) {
-      console.error("Manual play failed:", error);
-      setShowMobileButton(true);
-      
-      if (error.name === 'NotAllowedError') {
-        setAudioError("Please tap the play button to start music.");
-      } else {
-        setAudioError("Could not play audio. Please try again.");
-      }
-    }
-    
-    setUserInteraction();
-  };
-
-  // Pause audio function
-  const pauseAudio = () => {
-    if (!audioRef.current) return;
-    
-    audioRef.current.pause();
-    setIsPlaying(false);
-    setUserManuallyPaused(true);
-    setUserInteraction();
-  };
-
-  // Toggle play/pause
-  const togglePlayPause = () => {
-    if (isPlaying) {
-      pauseAudio();
-    } else {
-      playAudio();
-    }
-  };
-
-  // Handle volume change
-  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newVolume = parseFloat(e.target.value);
-    setVolume(newVolume);
-    if (audioRef.current) {
-      audioRef.current.volume = newVolume;
-    }
-  };
-
-  // Handle audio end - loop it
-  const handleAudioEnd = () => {
-    if (audioRef.current && isPlaying) {
-      audioRef.current.currentTime = 0;
-      audioRef.current.play().catch(e => {
-        console.log("Loop play failed:", e);
-      });
-    }
-  };
-
-  // Add audio event listeners
+  // Add audio event listeners - fixed to handle single clicks
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
 
-    const handlePlay = () => setIsPlaying(true);
-    const handlePause = () => setIsPlaying(false);
+    const handlePlay = () => {
+      setIsPlaying(true);
+      console.log("Audio play event fired");
+    };
+    
+    const handlePause = () => {
+      setIsPlaying(false);
+      console.log("Audio pause event fired");
+    };
 
     audio.addEventListener('play', handlePlay);
     audio.addEventListener('pause', handlePause);
@@ -220,7 +229,7 @@ export default function BackgroundMusic() {
       audio.removeEventListener('pause', handlePause);
       audio.removeEventListener('ended', handleAudioEnd);
     };
-  }, [isPlaying]);
+  }, [handleAudioEnd]);
 
   return (
     <div className="bg-gradient-to-br from-[#976790]/20 to-[#7a5274]/20 backdrop-blur-sm rounded-2xl p-6 border border-[#976790]/30 shadow-lg">

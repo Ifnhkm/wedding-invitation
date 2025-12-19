@@ -16,40 +16,15 @@ import BackgroundMusic from "@/components/BackgroundMusic";
 import PrayerCard from "@/components/PrayerCard";
 import DoorEntrance from "@/components/DoorEntrance";
 import { useEffect, useState } from "react";
-
-// Store the user interaction state globally
-let userHasInteracted = false;
-let interactionListeners: ((hasInteracted: boolean) => void)[] = [];
-
-// Function to set user interaction
-export const setUserInteraction = () => {
-  userHasInteracted = true;
-  interactionListeners.forEach(listener => listener(true));
-};
-
-// Hook to listen for user interaction
-export const useUserInteraction = () => {
-  const [hasInteracted, setHasInteracted] = useState(userHasInteracted);
-  
-  useEffect(() => {
-    const listener = (value: boolean) => {
-      setHasInteracted(value);
-    };
-    
-    interactionListeners.push(listener);
-    return () => {
-      interactionListeners = interactionListeners.filter(l => l !== listener);
-    };
-  }, []);
-  
-  return hasInteracted;
-};
+import { setUserInteraction, useUserInteraction } from "@/utils/userInteraction"; // Import from new file
 
 export default function Home() {
   const [scrolledToBottom, setScrolledToBottom] = useState(false);
   const [showDoor, setShowDoor] = useState(true);
   const [isOpening, setIsOpening] = useState(false);
   const [isClient, setIsClient] = useState(false);
+  
+  const hasInteracted = useUserInteraction(); // Use the hook
 
   useEffect(() => {
     setIsClient(true);
