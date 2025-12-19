@@ -109,7 +109,7 @@ export default function BackgroundMusic() {
     // Configure audio element
     const audio = audioRef.current;
     audio.volume = volume;
-    audio.muted = true; // Start muted for silent autoplay
+    audio.muted = true;
     audio.preload = "auto";
     audio.loop = true;
 
@@ -201,9 +201,6 @@ export default function BackgroundMusic() {
     unlockWithGesture();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasUserInteracted]); // Only depends on user interaction
-
-  // REMOVE Strategy 3: This was causing auto-play after pause
-  // Comment out or remove this entire useEffect
 
   // Add audio event listeners - fixed to handle single clicks
   useEffect(() => {
@@ -333,33 +330,34 @@ export default function BackgroundMusic() {
                   )}
                 </button>
                 
-                {/* Volume control */}
-                <div className="flex flex-col items-center space-y-2">
-                  <div className="flex items-center space-x-2">
-                    <svg className="w-5 h-5 text-[#976790]" fill="currentColor" viewBox="0 0 24 24">
-                      {volume === 0 ? (
-                        <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z" />
-                      ) : volume < 0.5 ? (
-                        <path d="M18.5 12c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM5 9v6h4l5 5V4L9 9H5z" />
-                      ) : (
-                        <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z" />
-                      )}
-                    </svg>
-                    <span className="text-xs font-['Cormorant_Garamond'] text-[#976790] min-w-[80px]">
-                      {isPlaying ? "Sedang main" : "Dihentikan"}
-                    </span>
+                {!isMobile && (
+                  <div className="flex flex-col items-center space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <svg className="w-5 h-5 text-[#976790]" fill="currentColor" viewBox="0 0 24 24">
+                        {volume === 0 ? (
+                          <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z" />
+                        ) : volume < 0.5 ? (
+                          <path d="M18.5 12c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM5 9v6h4l5 5V4L9 9H5z" />
+                        ) : (
+                          <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z" />
+                        )}
+                      </svg>
+                      <span className="text-xs font-['Cormorant_Garamond'] text-[#976790] min-w-[80px]">
+                        {isPlaying ? "Sedang main" : "Dihentikan"}
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.1"
+                      value={volume}
+                      onChange={handleVolumeChange}
+                      className="w-32 accent-[#976790]"
+                      aria-label="Volume control"
+                    />
                   </div>
-                  <input
-                    type="range"
-                    min="0"
-                    max="1"
-                    step="0.1"
-                    value={volume}
-                    onChange={handleVolumeChange}
-                    className="w-32 accent-[#976790]"
-                    aria-label="Volume control"
-                  />
-                </div>
+                )}
               </div>
             </div>
           )}
@@ -410,6 +408,18 @@ export default function BackgroundMusic() {
             <p className="text-xs font-['Cormorant_Garamond'] text-[#976790] italic">
               Muzik akan bermula sebentar lagi...
             </p>
+          )}
+
+          {/* Mobile Volume Instruction */}
+          {isMobile && isPlaying && !audioError && (
+            <div className="mt-3 p-2 bg-[#976790]/10 rounded-lg">
+              <p className="text-xs font-['Cormorant_Garamond'] text-[#976790] font-semibold">
+                📱 Untuk mengawal volume:
+              </p>
+              <p className="text-[10px] font-['Cormorant_Garamond'] text-[#976790]/80 mt-1">
+                Gunakan butang fizikal volume pada sisi telefon anda
+              </p>
+            </div>
           )}
 
           {/* Music name display */}
