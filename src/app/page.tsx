@@ -12,7 +12,7 @@ import Location from "@/components/Location";
 import AnimatedBackground from "@/components/AnimatedBackground";
 import InvitationCard from "@/components/InvitationCard";
 import ScheduleCard from "@/components/ScheduleCard";
-import YouTubeVideo from "@/components/YoutubeVideo";
+import BackgroundMusic from "@/components/BackgroundMusic"; 
 import PrayerCard from "@/components/PrayerCard";
 import DoorEntrance from "@/components/DoorEntrance";
 import { useEffect, useState } from "react";
@@ -49,6 +49,11 @@ export default function Home() {
   const [scrolledToBottom, setScrolledToBottom] = useState(false);
   const [showDoor, setShowDoor] = useState(true);
   const [isOpening, setIsOpening] = useState(false);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   useEffect(() => {
     if (!showDoor) {
@@ -106,6 +111,10 @@ export default function Home() {
   // Show Door Entrance Component
   if (showDoor) {
     return <DoorEntrance onEnter={openDoor} isOpening={isOpening} />;
+  }
+
+  if (!isClient) {
+    return null; // Avoid hydration issues
   }
 
   // Main Content (After door opens)
@@ -247,8 +256,9 @@ export default function Home() {
 
             <InvitationCard />
 
-            <div className="mt-8" onClick={setUserInteraction}>
-              <YouTubeVideo />
+            {/* Background Music Component */}
+            <div className="mt-8">
+              <BackgroundMusic />
             </div>
 
             <div className="mt-8">
