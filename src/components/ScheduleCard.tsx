@@ -23,7 +23,7 @@ export default function ScheduleCard() {
 
                     <div className="space-y-1">
                         <p className="text-base font-['Cormorant_Garamond'] font-semibold text-[#7a5274] tracking-wider">
-                            1.00 petang
+                            12.30 tengah hari
                         </p>
                         <p className="text-sm font-['Cormorant_Garamond'] font-light text-[#976790]">
                             Ketibaan pasangan pengantin
